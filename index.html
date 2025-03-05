@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Editor</title>
+    <style>
+        body { 
+            background-color: #333; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .canvas-container { 
+            flex-grow: 1;
+            position: relative;
+        }
+        #frontBuffer { 
+            background-color: black; 
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #222;
+            padding: 10px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+        .panel {
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .panel-header {
+            background-color: #444;
+            padding: 8px 12px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        .panel-content {
+            padding: 10px;
+        }
+        .tool-group {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .tool-button {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            margin: 0 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .tool-button:hover {
+            background-color: #555;
+        }
+        .tool-button.active {
+            background-color: #3a8ee6;
+        }
+        .property-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .property-label {
+            width: 80px;
+            font-size: 14px;
+        }
+        .property-input {
+            flex-grow: 1;
+            background-color: #444;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            padding: 5px;
+        }
+        .object-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .object-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #444;
+        }
+        .object-item:hover {
+            background-color: #3a3a3a;
+        }
+        .object-item.selected {
+            background-color: #2a5885;
+        }
+        .toolbar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #222;
+            padding: 5px 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+    <!-- Include BabylonJS from CDN -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <!-- Include your TypeScript files (compiled to JavaScript) -->
+    <script src="dist/SoftEngine.js"></script>
+    <script src="dist/Editor.js"></script>
+    <script src="dist/main.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="frontBuffer" width="800" height="600"></canvas>
+            
+            <div class="toolbar">
+                <div class="tool-group">
+                    <button id="btn-select" class="tool-button active" title="Select (Q)">Select</button>
+                    <button id="btn-move" class="tool-button" title="Move (W)">Move</button>
+                    <button id="btn-rotate" class="tool-button" title="Rotate (E)">Rotate</button>
+                    <button id="btn-scale" class="tool-button" title="Scale (R)">Scale</button>
+                </div>
+            </div>
+            
+            <div class="status-bar">
+                <div id="coordinates">X: 0.00, Y: 0.00, Z: 0.00</div>
+                <div id="fps">FPS: 60</div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-header">Objects</div>
+                <div class="panel-content">
+                    <div class="tool-group">
+                        <button id="btn-add-cube" class="tool-button">Add Cube</button>
+                        <button id="btn-add-sphere" class="tool-button">Add Sphere</button>
+                    </div>
+                    <button id="btn-delete" class="tool-button">Delete Selected</button>
+                    
+                    <div style="margin-top: 10px;">
+                        <ul id="object-list" class="object-list">
+                            <!-- Objects will be added here dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">Transform</div>
+                <div class="panel-content">
+                    <div class="property-row">
+                        <span class="property-label">Position X:</span>
+                        <input type="number" id="pos-x" class="property-input" step="0.1" value="0">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Position Y:</span>
+                        <input type="number" id="pos-y" class="property-input" step="0.1" value="0">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Position Z:</span>
+                        <input type="number" id="pos-z" class="property-input" step="0.1" value="0">
+                    </div>
+                    
+                    <div class="property-row">
+                        <span class="property-label">Rotation X:</span>
+                        <input type="number" id="rot-x" class="property-input" step="0.1" value="0">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Rotation Y:</span>
+                        <input type="number" id="rot-y" class="property-input" step="0.1" value="0">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Rotation Z:</span>
+                        <input type="number" id="rot-z" class="property-input" step="0.1" value="0">
+                    </div>
+                    
+                    <div class="property-row">
+                        <span class="property-label">Scale X:</span>
+                        <input type="number" id="scale-x" class="property-input" step="0.1" value="1">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Scale Y:</span>
+                        <input type="number" id="scale-y" class="property-input" step="0.1" value="1">
+                    </div>
+                    <div class="property-row">
+                        <span class="property-label">Scale Z:</span>
+                        <input type="number" id="scale-z" class="property-input" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">Camera</div>
+                <div class="panel-content">
+                    <button id="btn-reset-camera" class="tool-button">Reset Camera</button>
+                    <div class="property-row">
+                        <span class="property-label">Speed:</span>
+                        <input type="range" id="camera-speed" class="property-input" min="0.1" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Debugging helper
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Error:', message, '\nSource:', source, '\nLine:', lineno);
+            console.error(error);
+        }
+    </script>
+</body>
+</html>
